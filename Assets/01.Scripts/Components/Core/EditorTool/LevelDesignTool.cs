@@ -13,19 +13,18 @@ public class CustomEditorWindow : EditorWindow
 
     int contensSpace = 10;
     int lastSpace = 10;
-
-    int bezierPosX = 0, bezierPosY = 0;
-    bool isMade = false;
+    bool isMade;
 
     [MenuItem("Window/Level Design Editor")]
     public static void ShowWindow()
     {
-        EditorWindow.GetWindow<CustomEditorWindow>("Level Design Editor");
+        GetWindow<CustomEditorWindow>("Level Design Editor");
     }
     private void OnEnable()
     {
         _options = Enum.GetNames(typeof(BubbleColor));
         _selectedOptionIndex = (int)BubbleColor.White;
+        isMade = HexagonGridManager.Instance.bezierParent.childCount > 0;
     }
 
     private void OnGUI()
@@ -72,11 +71,19 @@ public class CustomEditorWindow : EditorWindow
             // 오브젝트의 트랜스폼 설정 공간 추가
             GUILayout.Label("구슬 애니메이션 베지어 구간 설정", EditorStyles.boldLabel);
 
-            if (GUILayout.Button("애니메이션 구간 생성"))
+            if (GUILayout.Button("베지어 애니메이션 구간 생성"))
             {
                 GameObject _obj = Instantiate(HexagonGridManager.Instance.bezierCurvePrafab, Vector2.zero, Quaternion.identity);
-                _obj.transform.SetParent(HexagonGridManager.Instance.gridParent);
+                _obj.transform.SetParent(HexagonGridManager.Instance.bezierParent);
                 BubbleBezierCurveManager.Instance.bezier = _obj;
+            }
+            if (GUILayout.Button("이전 베지어 지우기"))
+            {
+                BubbleBezierCurveManager.Instance.RemovePreviousBeziers();
+            }
+            if (GUILayout.Button("모든 베지어 지우기"))
+            {
+                BubbleBezierCurveManager.Instance.RemoveBeziersAll();
             }
 
             //Repaint();

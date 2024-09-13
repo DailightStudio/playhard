@@ -71,4 +71,15 @@ public class BubbleBezierCurveManager : Singleton<BubbleBezierCurveManager>
             Gizmos.DrawSphere(item.position, 0.01f); // 위치와 반지름으로 구를 그림
         }
     }
+    public void RemoveBeziersAll()
+    {
+        while (HexagonGridManager.Instance.bezierParent.childCount > 0)
+        {
+            DestroyImmediate(HexagonGridManager.Instance.bezierParent.GetChild(0).gameObject);
+        }
+    }
+    public void RemovePreviousBeziers()
+    {
+        DestroyImmediate(HexagonGridManager.Instance.bezierParent.GetChild(HexagonGridManager.Instance.bezierParent.childCount - 1).gameObject);
+    }
 }

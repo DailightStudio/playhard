@@ -29,6 +29,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
     [SerializeField] GameObject hexaGridPrafab;
     public GameObject bezierCurvePrafab;
     [SerializeField] Transform stageParent;
+    public Transform bezierParent;
     public Transform gridParent;
     [HideInInspector] public BubbleColor selectColorEditor;
     [HideInInspector] public string saveFilePath = "Assets/03.Prafabs/Stage"; // 스테이지를 저장할 파일 경로
@@ -118,6 +119,10 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         while (gridParent.childCount > 0)
         {
             DestroyImmediate(gridParent.transform.GetChild(0).gameObject);
+        } 
+        while (bezierParent.childCount > 0)
+        {
+            DestroyImmediate(bezierParent.transform.GetChild(0).gameObject);
         }
     }
 
