@@ -112,6 +112,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
 #if UNITY_EDITOR
     public void RemoveStageAll()
     {
+        BubbleBezierCurveManager.Instance.beziers.Clear();
         while (stageParent.childCount > 0)
         {
             DestroyImmediate(stageParent.transform.GetChild(0).gameObject);
@@ -119,7 +120,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         while (gridParent.childCount > 0)
         {
             DestroyImmediate(gridParent.transform.GetChild(0).gameObject);
-        } 
+        }
         while (bezierParent.childCount > 0)
         {
             DestroyImmediate(bezierParent.transform.GetChild(0).gameObject);

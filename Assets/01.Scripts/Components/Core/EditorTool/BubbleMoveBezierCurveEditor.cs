@@ -1,3 +1,4 @@
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
@@ -7,43 +8,42 @@ public class BubbleMoveBezierCurveEditor : Editor
 {
     private void OnSceneGUI()
     {
-        
-        BubbleBezierCurveManager bezierCurve = (BubbleBezierCurveManager)target;
+        BubbleBezierCurveManager bezierCurveManager = (BubbleBezierCurveManager)target;
 
         EditorGUI.BeginChangeCheck();
-        if (bezierCurve.bezier == null) return;
 
-        Vector3 point0 = Handles.PositionHandle(bezierCurve.point0.position, Quaternion.identity);
-        Vector3 point1 = Handles.PositionHandle(bezierCurve.point1.position, Quaternion.identity);
-        Vector3 point2 = Handles.PositionHandle(bezierCurve.point2.position, Quaternion.identity);
-        Vector3 point3 = Handles.PositionHandle(bezierCurve.point3.position, Quaternion.identity);
-
-        if (EditorGUI.EndChangeCheck())
+        int _num = 0;
+        foreach (var bezier in bezierCurveManager.beziers)
         {
-            Undo.RecordObject(bezierCurve, "Move Bezier Points");
-            bezierCurve.point0.position = point0;
-            bezierCurve.point1.position = point1;
-            bezierCurve.point2.position = point2;
-            bezierCurve.point3.position = point3;
-            SceneView.RepaintAll();
-        }
+            var points = bezierCurveManager.GetBezierPoints(_num);
+            Vector3 point0 = Handles.PositionHandle(points[0].position, Quaternion.identity);
+            Vector3 point1 = Handles.PositionHandle(points[1].position, Quaternion.identity);
+            Vector3 point2 = Handles.PositionHandle(points[2].position, Quaternion.identity);
+            Vector3 point3 = Handles.PositionHandle(points[3].position, Quaternion.identity);
 
-        Handles.DrawBezier(bezierCurve.point0.position, bezierCurve.point3.position,
-                            bezierCurve.point1.position, bezierCurve.point2.position,
-                            Color.red, null, 2f);
-        // 핸들에 클릭 가능한 점 그리기
-        DrawClickablePoint(bezierCurve.point0.position, "Point0");
-        DrawClickablePoint(bezierCurve.point1.position, "Point1");
-        DrawClickablePoint(bezierCurve.point2.position, "Point2");
-        DrawClickablePoint(bezierCurve.point3.position, "Point3");
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(bezierCurveManager, "Move Bezier Points");
+                points[0].position = point0;
+                points[1].position = point1;
+                points[2].position = point2;
+                points[3].position = point3;
+                SceneView.RepaintAll();
+            }
+
+            Handles.DrawBezier(points[0].position, points[3].position, points[1].position, points[2].position, Color.red, null, 2f);
+            DrawClickablePoint(points[0].position, "Point0");
+            DrawClickablePoint(points[1].position, "Point1");
+            DrawClickablePoint(points[2].position, "Point2");
+            DrawClickablePoint(points[3].position, "Point3");
+
+            _num++;
+        }
 
         void DrawClickablePoint(Vector3 position, string label)
         {
-            // 핸들을 그리면서 클릭할 수 있는 점을 그립니다.
             Handles.color = Color.blue;
             Handles.DrawSolidDisc(position, Vector3.up, 0.1f);
-
-            // 점에 대한 레이블 표시
             Handles.Label(position, label);
         }
     }

@@ -73,9 +73,7 @@ public class CustomEditorWindow : EditorWindow
 
             if (GUILayout.Button("베지어 애니메이션 구간 생성"))
             {
-                GameObject _obj = Instantiate(HexagonGridManager.Instance.bezierCurvePrafab, Vector2.zero, Quaternion.identity);
-                _obj.transform.SetParent(HexagonGridManager.Instance.bezierParent);
-                BubbleBezierCurveManager.Instance.bezier = _obj;
+                BubbleBezierCurveManager.Instance.AddBezier();
             }
             if (GUILayout.Button("이전 베지어 지우기"))
             {
