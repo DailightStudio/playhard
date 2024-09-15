@@ -2,11 +2,16 @@
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(Bubble))]
 public class StageEditor : Editor
 {
     private BubbleColor previousColor;
+    private MovementFlag previousMovement;
     float radius = 0.4f; // 캐스트할 원의 반경
+
+    string mask;
+    string bubbleLayer = "Bubble";
+    string gridLayer = "Grid";
+    UnityEngine.LayerMask colLayerMask => UnityEngine.LayerMask.GetMask(mask);
 
     public override void OnInspectorGUI()
     {
@@ -17,50 +22,98 @@ public class StageEditor : Editor
 
     private void OnSceneGUI()
     {
-        if (CustomEditorWindow._isColorPaletteEnabled == false) return;
+        if (CustomEditorWindow.isColorPaletteEnabled == false &&
+            CustomEditorWindow.isBubbleRemoveEnabled == false &&
+            CustomEditorWindow.isBubbleCreateEnabled == false &&
+            CustomEditorWindow.isMovementChangeEnabled == false) return;
 
         Event e = Event.current;
 
         if (e.type == EventType.MouseDown && e.button == 0) // 왼쪽 마우스 버튼 클릭
         {
-            // SceneView에서의 클릭을 월드 좌표로 변환
-            Vector2 mousePosition = e.mousePosition;
-            Camera sceneCamera = SceneView.currentDrawingSceneView.camera;
-            mousePosition.y = sceneCamera.pixelHeight - mousePosition.y; // Y축 반전
-            Vector3 worldMousePosition = sceneCamera.ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, 0f));
+            Debug.Log("df");
+            Ray worldRay = HandleUtility.GUIPointToWorldRay(e.mousePosition);
+            Vector3 worldMousePosition = worldRay.origin;
 
-            // CircleCast를 사용하여 클릭한 위치 근처의 모든 Collider를 가져옴
-            Collider2D[] colliders = Physics2D.OverlapCircleAll(worldMousePosition, radius);
-            Bubble closestBubble = null;
+            // 검출 레이어 설정
+            if (CustomEditorWindow.isColorPaletteEnabled == true ||
+                CustomEditorWindow.isBubbleRemoveEnabled == true) mask = bubbleLayer;
+            else if (CustomEditorWindow.isBubbleCreateEnabled == true ||
+                CustomEditorWindow.isMovementChangeEnabled == true) mask = gridLayer;
+            else Debug.LogError("에러");
+
+            // 클릭한 위치 근처의 모든 Collider를 가져옴
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(worldMousePosition, radius, colLayerMask);
+            if (colliders.Length == 0) return;
+
+            Transform closest = null;
             float closestDistance = Mathf.Infinity;
 
             foreach (Collider2D collider in colliders)
             {
-                if (collider.gameObject.TryGetComponent(out Bubble hitBubble))
+                float distance = Vector2.Distance(worldMousePosition, collider.transform.position);
+                if (distance < closestDistance)
                 {
-                    float distance = Vector2.Distance(worldMousePosition, collider.transform.position);
-                    if (distance < closestDistance)
-                    {
-                        closestDistance = distance;
-                        closestBubble = hitBubble;
-                    }
+                    closestDistance = distance;
+                    closest = collider.transform;
                 }
             }
 
             // 가장 가까운 객체를 처리
-            if (closestBubble != null)
+            if (closest != null)
             {
-                if (closestBubble.bubbleColor != previousColor)
+                Debug.Log(closest);
+                if (CustomEditorWindow.isColorPaletteEnabled || CustomEditorWindow.isBubbleRemoveEnabled)
                 {
-                    // Undo 기록 및 색상 변경
-                    Undo.RecordObject(closestBubble.gameObject, "Change Bubble Color");
-                    closestBubble.ChangeColor(HexagonGridManager.Instance.selectColorEditor);
-                    previousColor = closestBubble.bubbleColor;
-
-                    // 씬 뷰와 에디터 상태 업데이트
-                    EditorUtility.SetDirty(closestBubble.gameObject);
-                    //SceneView.RepaintAll();
+                    Bubble _closetBubble = closest.GetComponent<Bubble>();
+                    if (CustomEditorWindow.isColorPaletteEnabled)
+                    {
+                        if (_closetBubble.bubbleColor != previousColor)
+                        {
+                            _closetBubble.ChangeColor(HexagonGridManager.Instance.selectColorEditor);
+                            previousColor = _closetBubble.bubbleColor;
+                            EditorUtility.SetDirty(_closetBubble.gameObject);
+                        }
+                    }
+                    else if (CustomEditorWindow.isBubbleRemoveEnabled)
+                    {
+                        closest.gameObject.SetActive(false);
+                        EditorUtility.SetDirty(closest.gameObject);
+                        BubbleManager.Instance.bubbleDatasDic.Remove(_closetBubble.currentXY);
+                        DestroyImmediate(closest.gameObject);
+                    }
+                    else Debug.LogError("에러");
                 }
+                else if (CustomEditorWindow.isBubbleCreateEnabled || CustomEditorWindow.isMovementChangeEnabled)
+                {
+                    GridSlot _slot = closest.GetComponent<GridSlot>();
+                    if (CustomEditorWindow.isBubbleCreateEnabled)
+                    {
+                        Vector2 _pos = _slot.gridXY;
+                        if (BubbleManager.Instance.bubbleDatasDic.ContainsKey(_pos) == true) return;
+
+                        GameObject _obj = Instantiate(HexagonGridManager.Instance.bubblePrafab, closest.transform.position, Quaternion.identity);
+                        _obj.transform.SetParent(HexagonGridManager.Instance.stage.bubblesParent);
+                        Bubble _bubble = _obj.GetComponent<Bubble>();
+                        _bubble.ChangeColor(HexagonGridManager.Instance.selectColorEditor);
+                        BubbleData _bubbleData = new BubbleData(_bubble, _pos);
+                        _bubble.currentXY = _pos;
+                        BubbleManager.Instance.bubbleDatasDic.Add(_pos, _bubbleData);
+
+                        EditorUtility.SetDirty(_obj.gameObject);
+                    }
+                    else if (CustomEditorWindow.isMovementChangeEnabled)
+                    {
+                        Debug.Log("df");
+                        if (_slot.movementFlag != previousMovement)
+                        {
+                            _slot.ChangeMovement(HexagonGridManager.Instance.selectMovementEditor);
+                            previousMovement = _slot.movementFlag;
+                            EditorUtility.SetDirty(_slot.gameObject);
+                        }
+                    }
+                }
+                else Debug.LogError("에러");
             }
         }
     }

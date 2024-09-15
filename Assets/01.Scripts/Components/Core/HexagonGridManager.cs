@@ -1,23 +1,14 @@
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-using System.IO;
 using UnityEngine;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using static UnityEngine.Rendering.DebugUI.Table;
-using System;
-using static System.Collections.Specialized.BitVector32;
 
 public class HexaGridData
 {
-    public float x;
-    public float y;
+    public Vector2 gridXY;
 
     public HexaGridData(Vector2 _pos)
     {
-        this.x = _pos.x;
-        this.y = _pos.y;
+        this.gridXY = _pos;
     }
 }
 
@@ -25,28 +16,62 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
 {
     [HideInInspector] public Dictionary<Vector2, HexaGridData> hexaGridDatasDic = new Dictionary<Vector2, HexaGridData>();
 
-    [SerializeField] GameObject bubblePrafab;
+    public GameObject bubblePrafab;
     [SerializeField] GameObject hexaGridPrafab;
-    public GameObject bezierCurvePrafab;
-    [SerializeField] Transform stageParent;
-    public Transform bezierParent;
-    public Transform gridParent;
+
+    public Stage stage;
+
+    public Sprite movementDown, movementRight, movementLeft;
+    public Dictionary<MovementFlag, Sprite> movementSprDic => new Dictionary<MovementFlag, Sprite>()
+    {
+        { MovementFlag.Down, movementDown},
+        { MovementFlag.Left, movementLeft},
+        { MovementFlag.Right, movementRight}
+    };
+
     [HideInInspector] public BubbleColor selectColorEditor;
-    [HideInInspector] public string saveFilePath = "Assets/03.Prafabs/Stage"; // 스테이지를 저장할 파일 경로
+    [HideInInspector] public MovementFlag selectMovementEditor;
+
     float radius = 0.4f; // 구슬 반지름
 
-    [HideInInspector] public string stageFilePath = "Stage_00";
     [HideInInspector] public int row = 6; // 행
     [HideInInspector] public int column = 12; // 열
     [HideInInspector] public int startColumn = 6; // 시작 열
 
-    private void Start()
+
+    new void Awake()
     {
-        CreateGrid();
+        RemoveStageAll();
     }
+
+    public void SetGrid()
+    {
+        hexaGridDatasDic.Clear();
+        Transform _stageGrid = StageManager.Instance.currentStage.gridParent;
+        for (int i = 0; i < _stageGrid.childCount; i++)
+        {
+            GridSlot _slot = _stageGrid.GetChild(i).GetComponent<GridSlot>();
+            _slot.sprRenderer.sprite = null;
+            HexaGridData _gridData = new HexaGridData(_slot.transform.position);
+            hexaGridDatasDic.Add(_slot.gridXY, _gridData);
+        }
+    }
+
+    public void SetBubbles()
+    {
+        BubbleManager.Instance.bubbleDatasDic.Clear();
+        Transform _stageBubble = StageManager.Instance.currentStage.bubblesParent;
+        for (int i = 0; i < _stageBubble.childCount; i++)
+        {
+            Bubble _bubble = _stageBubble.GetChild(i).GetComponent<Bubble>();
+            BubbleData _bubbleData = new BubbleData(_bubble, _bubble.transform.position);
+            BubbleManager.Instance.bubbleDatasDic.Add(_bubble.currentXY, _bubbleData);
+        }
+    }
+
     public void CreateGrid()
     {
-        if (gridParent.childCount > 0)
+        if (stage.gridParent.childCount > 0)
         {
             Debug.LogError("이미 스테이지가 생성되어 있습니다.");
             return;
@@ -68,23 +93,27 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         BubbleManager.Instance.bubbleDatasDic.Clear();
 
         // 그리드 생성 및 배치
-        for (int _row = 0; _row < column + startColumn; _row++)
+        for (int _col = 0; _col < column + startColumn; _col++)
         {
-            for (int _col = 0; _col < row; _col++)
+            for (int _row = 0; _row < row; _row++)
             {
-                float _xOffset = _col * _horizontalSpacing;
-                float _yOffset = _row * _verticalSpacing;
+                float _xOffset = _row * _horizontalSpacing;
+                float _yOffset = _col * _verticalSpacing;
 
-                // 짝수 행의 경우 x 오프셋 추가
-                if (_row % 2 == 0)
+                // 짝수 열의 경우,
+                if (_col % 2 == 0)
                 {
                     _xOffset += _horizontalSpacing / 2;
                 }
+
                 Vector2 _pos = startPos + new Vector2(_xOffset, _yOffset);
                 GameObject _obj = Instantiate(hexaGridPrafab, _pos, Quaternion.identity);
-                _obj.transform.SetParent(gridParent);
+                _obj.transform.SetParent(stage.gridParent);
+
                 HexaGridData _gridData = new HexaGridData(_pos);
-                hexaGridDatasDic.Add(new Vector2(_row, _col), _gridData);
+                Vector2 _gridXY = new Vector2(_row, _col);
+                hexaGridDatasDic.Add(_gridXY, _gridData);
+                _obj.GetComponent<GridSlot>().gridXY = _gridXY;
             }
         }
         CreateBubbles();
@@ -92,52 +121,35 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
 
     void CreateBubbles()
     {
-        for (int _row = startColumn; _row < column + startColumn; _row++)
+        for (int _col = startColumn; _col < column + startColumn; _col++)
         {
-            for (int _col = 0; _col < row; _col++)
+            for (int _row = 0; _row < row; _row++)
             {
                 Vector2 _key = new Vector2(_row, _col);
                 HexaGridData _data = hexaGridDatasDic[_key];
-                Vector2 _pos = new Vector2(_data.x, _data.y);
-                GameObject _obj = Instantiate(bubblePrafab, _pos, Quaternion.identity);
-                _obj.transform.SetParent(stageParent);
+                Vector2 _pos = _data.gridXY;
+                GameObject _obj = Instantiate(bubblePrafab, new Vector3(_pos.x, _pos.y, -0.1f), Quaternion.identity);
+                _obj.transform.SetParent(stage.bubblesParent);
                 Bubble _bubble = _obj.GetComponent<Bubble>();
                 BubbleData _bubbleData = new BubbleData(_bubble, _pos);
-                BubbleManager.Instance.bubbleDatasDic.Add(new Vector2(_row, _col), _bubbleData);
+                _bubble.currentXY = _key;
+                BubbleManager.Instance.bubbleDatasDic.Add(_key, _bubbleData);
             }
         }
     }
 
 
-#if UNITY_EDITOR
     public void RemoveStageAll()
     {
-        BubbleBezierCurveManager.Instance.beziers.Clear();
-        while (stageParent.childCount > 0)
+        while (stage.gridParent.childCount > 0)
         {
-            DestroyImmediate(stageParent.transform.GetChild(0).gameObject);
+            DestroyImmediate(stage.gridParent.transform.GetChild(0).gameObject);
         }
-        while (gridParent.childCount > 0)
+
+        while (stage.bubblesParent.childCount > 0)
         {
-            DestroyImmediate(gridParent.transform.GetChild(0).gameObject);
+            DestroyImmediate(stage.bubblesParent.transform.GetChild(0).gameObject);
         }
-        while (bezierParent.childCount > 0)
-        {
-            DestroyImmediate(bezierParent.transform.GetChild(0).gameObject);
-        }
+
     }
-
-    public void SaveStage()
-    {
-        // 프리팹 저장 경로 설정
-        string prefabName = $"{stageFilePath}.prefab";
-        string savePath = Path.Combine(saveFilePath, prefabName).Replace("\\", "/"); // 슬래시 통일
-
-        // 프리팹 저장
-        PrefabUtility.SaveAsPrefabAsset(stageParent.gameObject, savePath);
-
-        // 에셋 데이터베이스를 갱신
-        AssetDatabase.SaveAssets();
-    }
-#endif
 }

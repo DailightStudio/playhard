@@ -5,7 +5,10 @@ using UnityEngine;
 public class Bubble : MonoBehaviour
 {
     [SerializeField] SpriteRenderer sprRenderer;
-    [HideInInspector] public BubbleColor bubbleColor = BubbleColor.White;
+    public BubbleColor bubbleColor { get; set; } = BubbleColor.White;
+
+    public Vector2 currentXY;
+    public Vector2 nextStep { get; set; }
 
     public void ChangeColor(BubbleColor _color)
     {
