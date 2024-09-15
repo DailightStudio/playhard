@@ -121,7 +121,7 @@ public class CustomEditorWindow : EditorWindow
                 isBubbleCreateEnabled = false;
 
                 // 컬러 팔레트 선택
-                selectedColor = EditorGUILayout.Popup("이동 타일 종류 선택", selectedMovement, _optionsMovement);
+                selectedMovement = EditorGUILayout.Popup("이동 타일 종류 선택", selectedMovement, _optionsMovement);
                 grid.selectMovementEditor = (MovementFlag)selectedMovement;
             }
 

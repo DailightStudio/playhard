@@ -10,14 +10,10 @@ public enum MovementFlag
 
 public class GridSlot : MonoBehaviour
 {
-    public SpriteRenderer sprRenderer { get; set; }
+    public SpriteRenderer sprRenderer;
     public Vector2 gridXY;
     public MovementFlag movementFlag { get; set; } = MovementFlag.Down;
 
-    private void Awake()
-    {
-        sprRenderer = GetComponent<SpriteRenderer>();
-    }
     public void ChangeMovement(MovementFlag _movement)
     {
         movementFlag = _movement;

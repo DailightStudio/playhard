@@ -133,5 +133,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 453c47a256f099f4383a2f617ecbad91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprRenderer: {fileID: 3062479961807700760}
   gridXY: {x: 0, y: 0}
-  movementRegion: 0
