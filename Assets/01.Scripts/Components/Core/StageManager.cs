@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,16 @@ public class StageManager : Singleton<StageManager>
 
     public int stageLevel { get; set; } = 0;
     public Stage currentStage { get; set; }
+
+    public Dictionary<MovementFlag, Vector2> directionsDic = new Dictionary<MovementFlag, Vector2>()
+    {
+        { MovementFlag.Down, new Vector2(0, -1) },
+        { MovementFlag.Up, new Vector2(0, 1) },
+        { MovementFlag.Right, new Vector2(1, 0) },
+        { MovementFlag.Left, new Vector2(-1, 0) },
+        { MovementFlag.LeftUp, new Vector2(-1, 1) },
+        { MovementFlag.RightUp, new Vector2(1, 1) }
+    };
 
     new void Awake()
     {
@@ -38,15 +49,17 @@ public class StageManager : Singleton<StageManager>
 
     IEnumerator ie()
     {
-        while (true)
+        while (count < 15)
         {
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(0.1f);
             NextStep();
         }
     }
 
+    int count = 0;
     public void NextStep()
     {
+        count++;
         foreach (var item in BubbleManager.Instance.bubbleDatasDic)
         {
             Bubble _bubble = BubbleManager.Instance.bubbleDatasDic[item.Key].bubble;
@@ -54,8 +67,14 @@ public class StageManager : Singleton<StageManager>
             if (HexagonGridManager.Instance.hexaGridDatasDic.TryGetValue(_bubble.nextStep, out HexaGridData _value))
             {
                 Vector2 _nextStep = _value.gridXY;
-                _bubble.transform.position = _nextStep;
+                //_bubble.transform.position = _nextStep;
+                _bubble.transform.DOMove(_nextStep, 0.1f).SetEase(Ease.InOutQuad);
+           
             }
+        }
+        foreach (var item in HexagonGridManager.Instance.hexaGridDatasDic)
+        {
+            HexagonGridManager.Instance.hexaGridDatasDic[item.Key].slot.RefleshBubbleData();
         }
     }
 
@@ -76,5 +95,21 @@ public class StageManager : Singleton<StageManager>
     {
         HexagonGridManager.Instance.SetGrid();
         HexagonGridManager.Instance.SetBubbles();
+    }
+
+    public bool IsCloseBubble(GridSlot _slot)
+    {
+        bool _isClose = false;
+        foreach (var _dir in directionsDic)
+        {
+            // 각 방향에 대해 검사
+            if (BubbleManager.Instance.bubbleDatasDic.ContainsKey(_slot.gridXY + _dir.Value))
+            {
+                Debug.Log(_slot.gridXY);
+                _isClose = true;
+                break;  // 하나라도 발견되면 종료
+            }
+        }
+        return _isClose;
     }
 }

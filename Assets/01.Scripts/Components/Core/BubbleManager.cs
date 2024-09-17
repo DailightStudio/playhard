@@ -19,9 +19,9 @@ public class BubbleData
     public Bubble bubble;
     public Vector2 gridXY;
 
-    public BubbleData(Bubble _bubble, Vector2 _pos)
+    public BubbleData(Bubble _bubble,Vector2 _pos)
     {
-        this.bubble = _bubble;
+        this.bubble = _bubble; 
         this.gridXY = _pos;
     }
 }

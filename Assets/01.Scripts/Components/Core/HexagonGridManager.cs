@@ -4,10 +4,12 @@ using static UnityEngine.Rendering.DebugUI.Table;
 
 public class HexaGridData
 {
+    public GridSlot slot;
     public Vector2 gridXY;
 
-    public HexaGridData(Vector2 _pos)
+    public HexaGridData(GridSlot _slot, Vector2 _pos)
     {
+        this.slot = _slot;
         this.gridXY = _pos;
     }
 }
@@ -32,7 +34,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
     [HideInInspector] public BubbleColor selectColorEditor;
     [HideInInspector] public MovementFlag selectMovementEditor;
 
-    float radius = 0.4f; // 구슬 반지름
+    public float radius { get; set; } = 0.4f; // 구슬 반지름
 
     [HideInInspector] public int row = 6; // 행
     [HideInInspector] public int column = 12; // 열
@@ -52,7 +54,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         {
             GridSlot _slot = _stageGrid.GetChild(i).GetComponent<GridSlot>();
             _slot.sprRenderer.sprite = null;
-            HexaGridData _gridData = new HexaGridData(_slot.transform.position);
+            HexaGridData _gridData = new HexaGridData(_slot, _slot.transform.position);
             hexaGridDatasDic.Add(_slot.gridXY, _gridData);
         }
     }
@@ -110,7 +112,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
                 GameObject _obj = Instantiate(hexaGridPrafab, _pos, Quaternion.identity);
                 _obj.transform.SetParent(stage.gridParent);
 
-                HexaGridData _gridData = new HexaGridData(_pos);
+                HexaGridData _gridData = new HexaGridData(_obj.GetComponent<GridSlot>(), _pos);
                 Vector2 _gridXY = new Vector2(_row, _col);
                 hexaGridDatasDic.Add(_gridXY, _gridData);
                 _obj.GetComponent<GridSlot>().gridXY = _gridXY;
