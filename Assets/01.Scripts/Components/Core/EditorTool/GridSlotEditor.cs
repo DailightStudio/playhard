@@ -51,16 +51,14 @@ public class GridSlotEditor : Editor
                 GridSlot _slot = closest.GetComponent<GridSlot>();
                 if (CustomEditorWindow.isBubbleCreateEnabled)
                 {
-                    Vector2 _pos = _slot.gridXY;
-                    if (BubbleManager.Instance.bubbleDatasDic.ContainsKey(_pos) == true) return;
+                    if (HexagonGridManager.Instance.hexaGridDatasDic.ContainsKey(_slot.gridXY) == true) return;
 
                     GameObject _obj = Instantiate(HexagonGridManager.Instance.bubblePrafab, new Vector3(closest.transform.position.x, closest.transform.position.y, -0.1f), Quaternion.identity);
                     _obj.transform.SetParent(HexagonGridManager.Instance.stage.bubblesParent);
                     Bubble _bubble = _obj.GetComponent<Bubble>();
                     _bubble.ChangeColor(HexagonGridManager.Instance.selectColorEditor);
-                    BubbleData _bubbleData = new BubbleData(_bubble, _pos);
-                    _bubble.currentXY = _pos;
-                    BubbleManager.Instance.bubbleDatasDic.Add(_pos, _bubbleData);
+                    _bubble.currentXY = _slot.gridXY;
+                    HexagonGridManager.Instance.hexaGridDatasDic[_slot.gridXY].bubble = _bubble;
 
                     EditorUtility.SetDirty(_obj.gameObject);
                 }

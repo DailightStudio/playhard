@@ -60,7 +60,7 @@ public class BubbleEditor : Editor
                 {
                     closest.gameObject.SetActive(false);
                     EditorUtility.SetDirty(closest.gameObject);
-                    BubbleManager.Instance.bubbleDatasDic.Remove(_closetBubble.currentXY);
+                    HexagonGridManager.Instance.hexaGridDatasDic[_closetBubble.currentXY].bubble = null;
                     DestroyImmediate(closest.gameObject);
                 }
                 else Debug.LogError("¿¡·¯");

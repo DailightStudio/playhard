@@ -4,11 +4,13 @@ using static UnityEngine.Rendering.DebugUI.Table;
 
 public class HexaGridData
 {
+    public Bubble bubble;
     public GridSlot slot;
     public Vector2 gridXY;
 
-    public HexaGridData(GridSlot _slot, Vector2 _pos)
+    public HexaGridData(GridSlot _slot, Bubble _bubble, Vector2 _pos)
     {
+        this.bubble = _bubble;
         this.slot = _slot;
         this.gridXY = _pos;
     }
@@ -54,20 +56,18 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         {
             GridSlot _slot = _stageGrid.GetChild(i).GetComponent<GridSlot>();
             _slot.sprRenderer.sprite = null;
-            HexaGridData _gridData = new HexaGridData(_slot, _slot.transform.position);
+            HexaGridData _gridData = new HexaGridData(_slot, null, _slot.gridXY);
             hexaGridDatasDic.Add(_slot.gridXY, _gridData);
         }
     }
 
     public void SetBubbles()
     {
-        BubbleManager.Instance.bubbleDatasDic.Clear();
         Transform _stageBubble = StageManager.Instance.currentStage.bubblesParent;
         for (int i = 0; i < _stageBubble.childCount; i++)
         {
             Bubble _bubble = _stageBubble.GetChild(i).GetComponent<Bubble>();
-            BubbleData _bubbleData = new BubbleData(_bubble, _bubble.transform.position);
-            BubbleManager.Instance.bubbleDatasDic.Add(_bubble.currentXY, _bubbleData);
+            hexaGridDatasDic[_bubble.currentXY].bubble = _bubble;
         }
     }
 
@@ -92,7 +92,6 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
         Vector2 startPos = new Vector2(-_gridWidth / 2, bottomLeft.y);
 
         hexaGridDatasDic.Clear();
-        BubbleManager.Instance.bubbleDatasDic.Clear();
 
         // 그리드 생성 및 배치
         for (int _col = 0; _col < column + startColumn; _col++)
@@ -112,7 +111,7 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
                 GameObject _obj = Instantiate(hexaGridPrafab, _pos, Quaternion.identity);
                 _obj.transform.SetParent(stage.gridParent);
 
-                HexaGridData _gridData = new HexaGridData(_obj.GetComponent<GridSlot>(), _pos);
+                HexaGridData _gridData = new HexaGridData(_obj.GetComponent<GridSlot>(), null, new Vector2(_row, _col));
                 Vector2 _gridXY = new Vector2(_row, _col);
                 hexaGridDatasDic.Add(_gridXY, _gridData);
                 _obj.GetComponent<GridSlot>().gridXY = _gridXY;
@@ -129,17 +128,14 @@ public class HexagonGridManager : Singleton<HexagonGridManager>
             {
                 Vector2 _key = new Vector2(_row, _col);
                 HexaGridData _data = hexaGridDatasDic[_key];
-                Vector2 _pos = _data.gridXY;
-                GameObject _obj = Instantiate(bubblePrafab, new Vector3(_pos.x, _pos.y, -0.1f), Quaternion.identity);
+                GameObject _obj = Instantiate(bubblePrafab, new Vector3(_data.slot.transform.position.x, _data.slot.transform.position.y, -0.1f), Quaternion.identity);
                 _obj.transform.SetParent(stage.bubblesParent);
                 Bubble _bubble = _obj.GetComponent<Bubble>();
-                BubbleData _bubbleData = new BubbleData(_bubble, _pos);
                 _bubble.currentXY = _key;
-                BubbleManager.Instance.bubbleDatasDic.Add(_key, _bubbleData);
+                _data.bubble = _bubble;
             }
         }
     }
-
 
     public void RemoveStageAll()
     {

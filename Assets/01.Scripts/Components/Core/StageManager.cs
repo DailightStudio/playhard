@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 public class StageManager : Singleton<StageManager>
 {
@@ -18,7 +19,9 @@ public class StageManager : Singleton<StageManager>
         { MovementFlag.Right, new Vector2(1, 0) },
         { MovementFlag.Left, new Vector2(-1, 0) },
         { MovementFlag.LeftUp, new Vector2(-1, 1) },
-        { MovementFlag.RightUp, new Vector2(1, 1) }
+        { MovementFlag.RightUp, new Vector2(1, 1) },
+        { MovementFlag.LeftDown, new Vector2(-1, -1) },
+        { MovementFlag.RightDown, new Vector2(1, -1) },
     };
 
     new void Awake()
@@ -51,7 +54,7 @@ public class StageManager : Singleton<StageManager>
     {
         while (count < 15)
         {
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.2f);
             NextStep();
         }
     }
@@ -60,21 +63,33 @@ public class StageManager : Singleton<StageManager>
     public void NextStep()
     {
         count++;
-        foreach (var item in BubbleManager.Instance.bubbleDatasDic)
-        {
-            Bubble _bubble = BubbleManager.Instance.bubbleDatasDic[item.Key].bubble;
 
-            if (HexagonGridManager.Instance.hexaGridDatasDic.TryGetValue(_bubble.nextStep, out HexaGridData _value))
+        // 변경 데이터 리스트
+        List<(HexaGridData oldData, HexaGridData newData)> updates = new List<(HexaGridData, HexaGridData)>();
+
+        foreach (var item in HexagonGridManager.Instance.hexaGridDatasDic.ToList())
+        {
+            HexaGridData _data = item.Value;
+            if (_data.bubble != null)
             {
+                Bubble _bubble = _data.bubble;
+                HexaGridData _value = HexagonGridManager.Instance.hexaGridDatasDic[_bubble.nextStep];
                 Vector2 _nextStep = _value.gridXY;
-                //_bubble.transform.position = _nextStep;
-                _bubble.transform.DOMove(_nextStep, 0.1f).SetEase(Ease.InOutQuad);
-           
+
+                _bubble.ChangeRigidBody(RigidbodyType2D.Kinematic);
+                _bubble.transform.DOMove(_value.slot.transform.position, 0.1f).SetEase(Ease.Linear)
+                    .OnComplete(() =>
+                    {
+                        updates.Add((oldData: _data, newData: _value));
+                        _bubble.ChangeRigidBody(RigidbodyType2D.Dynamic);
+                    });
             }
         }
-        foreach (var item in HexagonGridManager.Instance.hexaGridDatasDic)
+
+        foreach (var update in updates)
         {
-            HexagonGridManager.Instance.hexaGridDatasDic[item.Key].slot.RefleshBubbleData();
+            update.newData.bubble = update.oldData.bubble;
+            update.oldData.bubble = null;
         }
     }
 
@@ -100,16 +115,20 @@ public class StageManager : Singleton<StageManager>
     public bool IsCloseBubble(GridSlot _slot)
     {
         bool _isClose = false;
-        foreach (var _dir in directionsDic)
+
+        foreach (var _dir in directionsDic) // 각 방향에 대해 검사
         {
-            // 각 방향에 대해 검사
-            if (BubbleManager.Instance.bubbleDatasDic.ContainsKey(_slot.gridXY + _dir.Value))
+            Vector2 _dirPos = _slot.gridXY + _dir.Value;
+            _dirPos.x = Mathf.Max(0, _dirPos.x);
+            _dirPos.y = Mathf.Max(0, _dirPos.y);
+
+            if (HexagonGridManager.Instance.hexaGridDatasDic[_dirPos].bubble != null)
             {
-                Debug.Log(_slot.gridXY);
                 _isClose = true;
                 break;  // 하나라도 발견되면 종료
             }
         }
         return _isClose;
     }
+
 }

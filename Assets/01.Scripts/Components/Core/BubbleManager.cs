@@ -14,18 +14,6 @@ public enum BubbleColor
     White
 }
 
-public class BubbleData
-{
-    public Bubble bubble;
-    public Vector2 gridXY;
-
-    public BubbleData(Bubble _bubble,Vector2 _pos)
-    {
-        this.bubble = _bubble; 
-        this.gridXY = _pos;
-    }
-}
-
 public class BubbleManager : Singleton<BubbleManager>
 {
     public Sprite bubbleRed;
@@ -42,6 +30,4 @@ public class BubbleManager : Singleton<BubbleManager>
         { BubbleColor.Yellow, bubbleYellow},
         { BubbleColor.White, bubbleWhite},
     };
-
-    [HideInInspector] public Dictionary<Vector2, BubbleData> bubbleDatasDic = new Dictionary<Vector2, BubbleData>();
 }

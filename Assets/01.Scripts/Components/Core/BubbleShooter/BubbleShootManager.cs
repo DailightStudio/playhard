@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using Unity.Burst.CompilerServices;
+using System.Collections.Generic;
 
 public class BubbleShoot : MonoBehaviour
 {
@@ -12,12 +12,13 @@ public class BubbleShoot : MonoBehaviour
     float minDragAngle = 30f; // 최소 드래그 각도
     float maxDragAngle = 150f; // 최대 드래그 각도
     LayerMask colLayers => LayerMask.GetMask("Wall", "Bubble");
-    LayerMask gridLayers => LayerMask.GetMask("Grid");
     int simulationSteps = 15; // 경로 예측을 위한 시뮬레이션 단계 수
     float simulationTimeStep = 0.1f; // 시뮬레이션 시간 간격
 
     Vector3 dragStartPoint;
     Vector3 dragEndPoint;
+
+    private List<Vector3> trajectoryPoints = new List<Vector3>();
 
     void Start()
     {
@@ -93,10 +94,12 @@ public class BubbleShoot : MonoBehaviour
         }
     }
 
-    Vector2 collisionPoint;
+    Bubble lastBubble = null;
     private void UpdateLineRenderer()
     {
         if (lineRenderer == null) return;
+
+        trajectoryPoints.Clear();
 
         Vector2 direction = (dragStartPoint - dragEndPoint).normalized;
         Vector2 velocity = direction * shootSpeed;
@@ -108,25 +111,23 @@ public class BubbleShoot : MonoBehaviour
         Vector2 position = startPosition;
         Vector2 currentVelocity = velocity;
 
-        // LineRenderer의 위치 수를 시뮬레이션 단계 수에 맞추기
         int maxSteps = simulationSteps;
-        lineRenderer.positionCount = maxSteps; // 위치 수 설정
+        lineRenderer.positionCount = maxSteps;
 
-        lineRenderer.SetPosition(0, startPosition); // 시작점 설정
+        lineRenderer.SetPosition(0, startPosition);
+        trajectoryPoints.Add(startPosition);
 
-        int positionIndex = 1; // LineRenderer의 위치 인덱스 (첫 번째는 shootPoint)
-        collisionPoint = Vector2.zero; // 충돌 지점
+        int positionIndex = 1;
+        Vector2 collisionPoint = Vector2.zero;
 
-        for (int i = 0; i < maxSteps - 1; i++) // 마지막 포인트 제외하고 반복
+        for (int i = 0; i < maxSteps - 1; i++)
         {
-            // 벽과 충돌 검사
             RaycastHit2D hit = Physics2D.Raycast(position, currentVelocity.normalized, currentVelocity.magnitude * simulationTimeStep, colLayers);
 
-            if (hit.collider != null) // 충돌이 발생하면
+            if (hit.collider != null)
             {
-                // 충돌 지점 설정
                 position = hit.point;
-                collisionPoint = position; // 충돌 지점 저장
+                collisionPoint = position;
                 if (positionIndex < lineRenderer.positionCount)
                 {
                     lineRenderer.SetPosition(positionIndex, new Vector3(position.x, position.y, 0));
@@ -135,7 +136,7 @@ public class BubbleShoot : MonoBehaviour
 
                 // 충돌한 레이어 확인
                 int hitLayer = hit.collider.gameObject.layer;
-                Vector2 collisionNormal = hit.normal; // 충돌 방향 (정규화된 벡터)
+                Vector2 collisionNormal = hit.normal;
 
                 if (hitLayer == LayerMask.NameToLayer("Wall"))
                 {
@@ -146,6 +147,11 @@ public class BubbleShoot : MonoBehaviour
                     // 위치가 충돌 이후 변경됨
                     position += currentVelocity * simulationTimeStep; // 반사 이후 이동
                 }
+                if (hitLayer == LayerMask.NameToLayer("Bubble"))
+                {
+                    lastBubble = hit.collider.GetComponent<Bubble>();
+                    Debug.Log(lastBubble.transform.position);
+                }
             }
             else // 충돌이 발생하지 않으면
             {
@@ -155,6 +161,7 @@ public class BubbleShoot : MonoBehaviour
             if (positionIndex < lineRenderer.positionCount)
             {
                 lineRenderer.SetPosition(positionIndex, new Vector3(position.x, position.y, 0));
+                trajectoryPoints.Add(position);
                 positionIndex++;
             }
         }
@@ -163,70 +170,75 @@ public class BubbleShoot : MonoBehaviour
         if (positionIndex < lineRenderer.positionCount)
         {
             lineRenderer.SetPosition(positionIndex, new Vector3(collisionPoint.x, collisionPoint.y, 0));
+            trajectoryPoints.Add(collisionPoint); // 최종 지점 추가
         }
-
-        // LineRenderer의 포지션 수를 현재 인덱스 값으로 설정
         lineRenderer.positionCount = positionIndex;
     }
 
-    private void ShootBubble()
+    void ShootBubble()
     {
-        // UI의 RectTransform을 월드 좌표로 변환
         Vector3 shootPointWorldPosition;
         RectTransformUtility.ScreenPointToWorldPointInRectangle(shootPoint, shootPoint.position, Camera.main, out shootPointWorldPosition);
         shootPointWorldPosition.z = 0; // Z값을 0으로 설정하여 2D 평면에 맞추기
 
+        Vector2 shootDirection = (dragStartPoint - dragEndPoint).normalized;
+
         // 구슬 생성
-        GameObject bubble = Instantiate(bubblePrefab, shootPointWorldPosition, Quaternion.identity);
-        Rigidbody2D rb = bubble.GetComponent<Rigidbody2D>();
+        GameObject _bubbleObj = Instantiate(bubblePrefab, shootPointWorldPosition, Quaternion.identity);
+        Bubble _bubble = _bubbleObj.GetComponent<Bubble>();
 
-        if (rb != null)
-        {
-            // 구슬에 물리 소재 적용 (반사 처리)
-            CircleCollider2D collider = bubble.GetComponent<CircleCollider2D>();
-            if (collider != null && bounceMaterial != null)
-            {
-                collider.sharedMaterial = bounceMaterial;
-            }
-
-            // 드래그 방향 계산 (드래그 시작에서 끝을 뺀 벡터를 반전)
-            Vector2 shootDirection = (dragStartPoint - dragEndPoint).normalized;
-
-            // 구슬 속도 설정
-            rb.velocity = shootDirection * shootSpeed;
-
-            // 구슬이 LineRenderer의 경로를 따라 이동하도록 시작
-            StartCoroutine(FollowTrajectory(bubble, rb));
-        }
-        else
-        {
-            Debug.LogError("Bubble prefab must have a Rigidbody2D component.");
-        }
+        StartCoroutine(MoveBubbleAlongPath(_bubble));
     }
 
-    private IEnumerator FollowTrajectory(GameObject bubble, Rigidbody2D rb)
+    IEnumerator MoveBubbleAlongPath(Bubble _bubble)
     {
-        bool _isClose = false;
-        float radius = HexagonGridManager.Instance.radius;
+        if (trajectoryPoints.Count < 2) yield break; // 경로가 없는 경우
 
-        while (_isClose == false)
+        // 초기 위치
+        Vector3 currentPosition = _bubble.transform.position;
+        int currentPointIndex = 0;
+
+        // 구슬이 경로를 따라 이동하도록 함
+        while (currentPointIndex < trajectoryPoints.Count)
         {
-            Collider2D[] colliders = Physics2D.OverlapCircleAll(bubble.transform.position, radius, gridLayers);
-            if (colliders.Length > 0)
+            Vector3 targetPoint = trajectoryPoints[currentPointIndex];
+            float distance = Vector3.Distance(currentPosition, targetPoint);
+
+            // 목표 지점으로 이동
+            while (distance > 0.1f)
             {
-                foreach (var _item in colliders)
-                {
-                    GridSlot _slot = _item.GetComponent<GridSlot>();
-                    _isClose = StageManager.Instance.IsCloseBubble(_slot);
-                    if (_isClose == true)
-                    {
-                        rb.velocity = Vector2.zero;
-                        bubble.transform.position = HexagonGridManager.Instance.hexaGridDatasDic[_slot.gridXY].slot.transform.position;
-                        break;
-                    }
-                }
+                currentPosition = Vector3.MoveTowards(currentPosition, targetPoint, shootSpeed * Time.deltaTime);
+                _bubble.transform.position = currentPosition;
+                distance = Vector3.Distance(currentPosition, targetPoint);
+                yield return null;
             }
-            yield return null;
+            // 다음 지점으로 이동
+            currentPointIndex++;
         }
+
+        // 최종 위치 보정
+        Vector2 _bubblePos = _bubble.transform.position;
+        Vector2 _lastBubblePos = lastBubble.transform.position;
+
+        Vector2 lastBubbleDirection = (_lastBubblePos - _bubblePos).normalized;
+
+        MovementFlag closestDirectionFlag = MovementFlag.Down; // 기본값 설정
+        float minAngle = float.MaxValue; // 최소 각도 초기화
+
+        foreach (var direction in StageManager.Instance.directionsDic)
+        {
+            float angle = Vector2.Angle(lastBubbleDirection, direction.Value);
+            if (angle < minAngle)
+            {
+                minAngle = angle;
+                closestDirectionFlag = direction.Key;
+            }
+        }
+
+        Vector2 closestDirection = StageManager.Instance.directionsDic[closestDirectionFlag];
+
+        Vector2 correctedPosition = HexagonGridManager.Instance.hexaGridDatasDic[lastBubble.currentXY + closestDirection].slot.transform.position;
+        _bubble.transform.position = new Vector3(correctedPosition.x, correctedPosition.y, -2f);
+
     }
 }

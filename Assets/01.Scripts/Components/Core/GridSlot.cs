@@ -9,7 +9,9 @@ public enum MovementFlag
     Right,
     Left,
     LeftUp,
-    RightUp
+    RightUp,
+    LeftDown,
+    RightDown
 }
 
 public class GridSlot : MonoBehaviour
@@ -35,25 +37,5 @@ public class GridSlot : MonoBehaviour
             bubble = collision.GetComponent<Bubble>();
             bubble.nextStep = StageManager.Instance.directionsDic[movementFlag] + gridXY;
         }
-    }
-
-    public void RefleshBubbleData()
-    {
-        if (bubble == null) return;
-        // 기존 위치의 버블 데이터를 null로 설정
-        if (BubbleManager.Instance.bubbleDatasDic.ContainsKey(bubble.currentXY))
-        {
-            Debug.Log($"Removing bubble from current position: {bubble.currentXY}");
-            BubbleManager.Instance.bubbleDatasDic[bubble.currentXY].bubble = null;
-        }
-
-        // 새로운 위치에 버블 데이터를 설정
-        Debug.Log($"Setting bubble at new position: {gridXY}");
-        BubbleManager.Instance.bubbleDatasDic[gridXY].bubble = bubble;
-
-        // 버블의 현재 위치를 업데이트
-        bubble.currentXY = gridXY; // 현재 위치 갱신
-        Debug.Log($"Bubble currentXY updated to: {bubble.currentXY}");
-
     }
 }

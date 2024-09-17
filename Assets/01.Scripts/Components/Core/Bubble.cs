@@ -10,6 +10,13 @@ public class Bubble : MonoBehaviour
     public Vector2 currentXY;
     public Vector2 nextStep { get; set; }
 
+    Rigidbody2D rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
     public void ChangeColor(BubbleColor _color)
     {
         bubbleColor = _color;
@@ -17,4 +24,8 @@ public class Bubble : MonoBehaviour
         sprRenderer.sprite = _colorHexCode;
     }
 
+    public void ChangeRigidBody(RigidbodyType2D _type)
+    {
+        rb.bodyType = _type;
+    }
 }
