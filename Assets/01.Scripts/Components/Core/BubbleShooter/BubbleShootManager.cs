@@ -216,29 +216,33 @@ public class BubbleShoot : MonoBehaviour
             currentPointIndex++;
         }
 
-        // 최종 위치 보정
-        Vector2 _bubblePos = _bubble.transform.position;
-        Vector2 _lastBubblePos = lastBubble.transform.position;
+        //// 라인 렌더러의 마지막 지점
+        //Vector2 finalTrajectoryPoint = trajectoryPoints[trajectoryPoints.Count - 1];
 
-        Vector2 lastBubbleDirection = (_lastBubblePos - _bubblePos).normalized;
+        //// 최종 위치 보정
+        //Vector2 _bubblePos = _bubble.transform.position;
+        //Vector2 lastBubblePos = lastBubble.transform.position;
 
-        MovementFlag closestDirectionFlag = MovementFlag.Down; // 기본값 설정
-        float minAngle = float.MaxValue; // 최소 각도 초기화
+        //// 라스트 버블을 중심으로 발사된 구슬과의 방향 벡터 계산
+        //Vector2 lastBubbleToBubbleDirection = (_bubblePos - lastBubblePos).normalized;
 
-        foreach (var direction in StageManager.Instance.directionsDic)
-        {
-            float angle = Vector2.Angle(lastBubbleDirection, direction.Value);
-            if (angle < minAngle)
-            {
-                minAngle = angle;
-                closestDirectionFlag = direction.Key;
-            }
-        }
+        //// 가장 가까운 방향 찾기
+        //MovementFlag closestDirectionFlag = MovementFlag.Up; // 기본값 설정
+        //float minAngle = float.MaxValue; // 최소 각도 초기화
 
-        Vector2 closestDirection = StageManager.Instance.directionsDic[closestDirectionFlag];
+        //foreach (var direction in StageManager.Instance.directionsDic)
+        //{
+        //    float angle = Vector2.Angle(lastBubbleToBubbleDirection, direction.Value);
+        //    if (angle < minAngle)
+        //    {
+        //        minAngle = angle;
+        //        closestDirectionFlag = direction.Key;
+        //    }
+        //}
+        //Vector2 closestDirection = StageManager.Instance.directionsDic[closestDirectionFlag];
 
-        Vector2 correctedPosition = HexagonGridManager.Instance.hexaGridDatasDic[lastBubble.currentXY + closestDirection].slot.transform.position;
-        _bubble.transform.position = new Vector3(correctedPosition.x, correctedPosition.y, -2f);
+        //Vector2 correctedPosition = finalTrajectoryPoint + closestDirection;
 
+        //_bubble.transform.position = correctedPosition;
     }
 }

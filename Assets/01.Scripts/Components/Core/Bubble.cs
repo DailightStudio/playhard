@@ -17,6 +17,14 @@ public class Bubble : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
     }
 
+    //private void OnCollisionEnter2D(Collision2D collision)
+    //{
+    //    if (collision.gameObject.layer == LayerMask.NameToLayer("Bubble"))
+    //    {
+         
+    //    }
+    //}
+
     public void ChangeColor(BubbleColor _color)
     {
         bubbleColor = _color;
